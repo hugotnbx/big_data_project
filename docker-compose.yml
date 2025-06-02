@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  airflow:
+    image: airflow-nba:latest 
+    container_name: airflow 
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data_lake:/opt/airflow/data_lake
+      - ./scripts:/opt/airflow/scripts
+    ports:
+      - "8080:8080"
+    command: standalone
