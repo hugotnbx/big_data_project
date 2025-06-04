@@ -2,8 +2,8 @@ version: "3.8"
 
 services:
   airflow:
-    image: airflow-nba:latest 
-    container_name: airflow 
+    image: airflow-nba:latest
+    container_name: airflow
     environment:
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
       AIRFLOW__CORE__FERNET_KEY: ''
@@ -13,6 +13,34 @@ services:
       - ./dags:/opt/airflow/dags
       - ./data_lake:/opt/airflow/data_lake
       - ./scripts:/opt/airflow/scripts
+      - /var/run/docker.sock:/var/run/docker.sock
+      #- ./airflow_config:/opt/airflow
     ports:
       - "8080:8080"
     command: standalone
+    depends_on:
+      - spark 
+
+  spark:
+    image: bitnami/spark:3.4
+    container_name: spark
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_PORT=7077
+    ports:
+      - "8081:8080" 
+    volumes:
+      - ./data_lake:/opt/spark/data_lake
+      - ./scripts:/opt/spark/scripts
+
+  spark-worker:
+    image: bitnami/spark:3.4
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+    depends_on:
+      - spark
+    volumes:
+      - ./data_lake:/opt/spark/data_lake
+      - ./scripts:/opt/spark/scripts

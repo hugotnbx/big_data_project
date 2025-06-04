@@ -1,1 +1,4 @@
 __pycache__
+.env
+/data_lake
+/airflow_config
