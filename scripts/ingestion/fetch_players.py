@@ -19,8 +19,8 @@ def fetch_players():
     all_players_info = []
 
     # Paramètres pour le retry
-    max_retries = 3
-    retry_delay = 2  # en secondes
+    max_retries = 5
+    retry_delay = 3  # en secondes
 
     # 📦 Pour chaque joueur, récupère les infos avec commonplayerinfo
     for idx, player in enumerate(active_players):
@@ -46,10 +46,10 @@ def fetch_players():
                     print(f"🔄 Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                 else:
-                    print(f"❌ Failed to retrieve info for {player_name} after {max_retries} attempts.")
+                    print(f"🚫 Failed to retrieve info for {player_name} after {max_retries} attempts.")
 
         # Petite pause pour éviter de saturer l'API
-        time.sleep(0.3)
+        time.sleep(0.5)
 
     # 💾 Sauvegarde les infos en JSON
     output_file = os.path.join(raw_path, "players.json")

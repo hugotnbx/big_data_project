@@ -1,11 +1,20 @@
-version: "3.8"
-
 services:
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5432:5432"
+
   airflow:
     image: airflow-nba:latest
     container_name: airflow
     environment:
-      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: ''
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       PYTHONPATH: /opt/airflow/scripts:/opt/airflow/dags
@@ -14,33 +23,46 @@ services:
       - ./data_lake:/opt/airflow/data_lake
       - ./scripts:/opt/airflow/scripts
       - /var/run/docker.sock:/var/run/docker.sock
-      #- ./airflow_config:/opt/airflow
+      - ./airflow_config:/opt/airflow
     ports:
       - "8080:8080"
     command: standalone
     depends_on:
-      - spark 
+      - postgres
+      - spark-master
 
-  spark:
-    image: bitnami/spark:3.4
-    container_name: spark
+  spark-master:
+    image: spark-nba:latest
+    container_name: spark-master
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_PORT=7077
     ports:
-      - "8081:8080" 
+      - "8081:8080"
     volumes:
       - ./data_lake:/opt/spark/data_lake
       - ./scripts:/opt/spark/scripts
 
-  spark-worker:
-    image: bitnami/spark:3.4
-    container_name: spark-worker
+  spark-worker-1:
+    image: spark-nba:latest
+    container_name: spark-worker-1
     environment:
       - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_MASTER_URL=spark://spark-master:7077 
     depends_on:
-      - spark
+      - spark-master
+    volumes:
+      - ./data_lake:/opt/spark/data_lake
+      - ./scripts:/opt/spark/scripts
+
+  spark-worker-2:
+    image: spark-nba:latest
+    container_name: spark-worker-2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077 
+    depends_on:
+      - spark-master
     volumes:
       - ./data_lake:/opt/spark/data_lake
       - ./scripts:/opt/spark/scripts

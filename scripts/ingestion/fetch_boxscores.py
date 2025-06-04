@@ -13,8 +13,8 @@ def fetch_boxscores(season="2024-25"):
     games_df['GAME_DATE'] = pd.to_datetime(games_df['GAME_DATE'])
 
     # Paramètres pour le retry
-    max_retries = 3
-    retry_delay = 2  # en secondes
+    max_retries = 5
+    retry_delay = 3  # en secondes
 
     # Pour chaque date de match, regroupe les boxscores
     for game_date in games_df['GAME_DATE'].dt.date.unique():
@@ -43,7 +43,7 @@ def fetch_boxscores(season="2024-25"):
                     else:
                         print(f"🚫 Failed to fetch boxscore for {game_id} after {max_retries} attempts.")
 
-            time.sleep(0.3)  # Pause légère après chaque requête
+            time.sleep(0.35)  # Pause légère après chaque requête
 
         if all_boxscores:
             # Concatène et supprime les doublons

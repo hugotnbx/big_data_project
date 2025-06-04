@@ -1,77 +1,52 @@
+import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_unixtime, when
-import os
 
 def format_games():
     spark = SparkSession.builder.appName("NBA Games Formatting").getOrCreate()
 
-    input_path = "/opt/spark/data_lake/raw/nba_api/games/*/*.json"
-    print(f"🔎 Lecture des fichiers JSON depuis: {input_path}")
-    df = spark.read.json(input_path)
+    input_base = "/opt/spark/data_lake/raw/nba_api/games/"
+    output_base = "/opt/spark/data_lake/formatted/nba_api/games/"
 
-    selected_cols = [
-        col("SEASON_ID").alias("season_id"),
-        col("TEAM_ID").alias("team_id"),
-        col("TEAM_NAME").alias("team_name"),
-        col("TEAM_ABBREVIATION").alias("team_abbreviation"),
-        col("GAME_ID").alias("game_id"),
-        col("GAME_DATE").alias("game_date"),
-        col("MATCHUP").alias("matchup"),
-        col("WL").alias("win_raw"),
-        col("PTS").alias("pts")
-    ]
-    df = df.select(*selected_cols)
+    date_folders = [d for d in os.listdir(input_base) if os.path.isdir(os.path.join(input_base, d))]
+    print(f"📅 Dossiers date trouvés: {date_folders}")
 
-    df = df.withColumn("season_id", col("season_id").cast("int")) \
-           .withColumn("team_id", col("team_id").cast("int")) \
-           .withColumn("game_id", col("game_id").cast("string")) \
-           .withColumn("pts", col("pts").cast("int")) \
-           .withColumn("game_date", from_unixtime(col("game_date") / 1000).cast("timestamp"))
+    for date_str in date_folders:
+        input_path = os.path.join(input_base, date_str, "games.json")
 
-    df = df.withColumn("win", when(col("win_raw") == "W", True).otherwise(False)) \
-           .drop("win_raw")
-
-    dates = df.select("game_date").distinct().collect()
-    print(f"📅 Dates trouvées: {[row['game_date'] for row in dates]}")
-
-    for row in dates:
-        date_str = row["game_date"].strftime("%Y%m%d")
         print(f"➡️ Traitement de la date: {date_str}")
 
-        df_date = df.filter(col("game_date").cast("date") == row["game_date"].date())
-        print(f"🔢 Nombre de lignes pour {date_str}: {df_date.count()}")
+        df = spark.read.json(input_path)
 
-        tmp_output_dir = f"/opt/spark/data_lake/formatted/nba_api/games/{date_str}_tmp"
-        final_output_dir = f"/opt/spark/data_lake/formatted/nba_api/games/{date_str}/"
-        os.makedirs(final_output_dir, exist_ok=True)
+        selected_cols = [
+            col("SEASON_ID").alias("season_id"),
+            col("TEAM_ID").alias("team_id"),
+            col("TEAM_NAME").alias("team_name"),
+            col("TEAM_ABBREVIATION").alias("team_abbreviation"),
+            col("GAME_ID").alias("game_id"),
+            col("GAME_DATE").alias("game_date"),
+            col("MATCHUP").alias("matchup"),
+            col("WL").alias("win_raw"),
+            col("PTS").alias("pts")
+        ]
 
-        print(f"💾 Écriture dans un seul fichier parquet temporaire…")
-        df_date.coalesce(1).write.mode("overwrite").parquet(tmp_output_dir)
+        df = df.select(*selected_cols)
 
-        # Trouver le part-*.parquet et le renommer en games.parquet
-        parquet_file = None
-        for file in os.listdir(tmp_output_dir):
-            print(f"🔍 Fichier trouvé: {file}")
-            if file.endswith(".parquet"):
-                parquet_file = file
-                break
+        df = df.withColumn("season_id", col("season_id").cast("int")) \
+               .withColumn("team_id", col("team_id").cast("int")) \
+               .withColumn("game_id", col("game_id").cast("int")) \
+               .withColumn("pts", col("pts").cast("int")) \
+               .withColumn("game_date", from_unixtime(col("game_date") / 1000).cast("timestamp"))
 
-        if parquet_file:
-            os.rename(
-                os.path.join(tmp_output_dir, parquet_file),
-                os.path.join(final_output_dir, "games.parquet")
-            )
-            print(f"✅ Fichier unique games.parquet sauvegardé pour {date_str}")
-        else:
-            print("⚠️ Aucun fichier Parquet trouvé après écriture !")
+        df = df.withColumn("win", when(col("win_raw") == "W", True).otherwise(False)) \
+               .drop("win_raw")
 
-        # Nettoyage des fichiers temporaires
-        for file in os.listdir(tmp_output_dir):
-            os.remove(os.path.join(tmp_output_dir, file))
-        os.rmdir(tmp_output_dir)
-        print(f"🧹 Dossier temporaire {tmp_output_dir} supprimé.")
+        output_dir = os.path.join(output_base, date_str)
+        os.makedirs(output_dir, exist_ok=True)
+        df.write.mode("overwrite").parquet(output_dir)
 
-    print("🎉 Formatage terminé pour toutes les dates !")
+        print(f"✅ Fichiers écrits pour {date_str}")
+
     spark.stop()
 
 if __name__ == "__main__":
