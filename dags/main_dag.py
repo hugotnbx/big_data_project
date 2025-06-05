@@ -24,21 +24,25 @@ with DAG(
     catchup=False,
 ) as dag:
 
-    # fetch_games_task = PythonOperator(
-    #     task_id='fetch_games',
-    #     python_callable=fetch_games
-    # )
+    # Tasks
 
-    # fetch_boxscores_task = PythonOperator(
-    #     task_id='fetch_boxscores',
-    #     python_callable=fetch_boxscores
-    # )
+    # Ingestion
+    fetch_games_task = PythonOperator(
+        task_id='fetch_games',
+        python_callable=fetch_games
+    )
 
-    # fetch_players_task = PythonOperator(
-    #     task_id='fetch_players',
-    #     python_callable=fetch_players
-    # )
+    fetch_boxscores_task = PythonOperator(
+        task_id='fetch_boxscores',
+        python_callable=fetch_boxscores
+    )
 
+    fetch_players_task = PythonOperator(
+        task_id='fetch_players',
+        python_callable=fetch_players
+    )
+
+    # Formatting
     format_games_task = BashOperator(
         task_id="format_games",
         bash_command="docker exec spark-master spark-submit --master spark://spark-master:7077 --deploy-mode client /opt/spark/scripts/formatting/format_games.py"
@@ -69,6 +73,7 @@ with DAG(
         bash_command="docker exec spark-master python3 /opt/spark/scripts/formatting/clean_players_files.py"
     )
 
+    # Combination
     combine_datasources_task = BashOperator(
         task_id="combine_datasources",
         bash_command="docker exec spark-master spark-submit --master spark://spark-master:7077 --deploy-mode client /opt/spark/scripts/combination/combine_datasources.py"
@@ -79,15 +84,23 @@ with DAG(
         bash_command="docker exec spark-master python3 /opt/spark/scripts/combination/clean_combine_files.py"
     )
 
-    # fetch_games_task >> 
-    format_games_task >> clean_games_files_task 
-    # fetch_boxscores_task >> 
+    # Indexing
+    index_data_to_elastic_task = BashOperator(
+        task_id="index_data_to_elastic",
+        bash_command="docker exec spark-master spark-submit --master spark://spark-master:7077 --packages org.elasticsearch:elasticsearch-spark-30_2.12:8.11.0 --deploy-mode client /opt/spark/scripts/indexing/index_data_to_elastic.py"
+    )
+
+    # Dependencies
+    fetch_games_task >> format_games_task
+    fetch_boxscores_task >> format_boxscores_task
+    fetch_players_task >> format_players_task
+
+    format_games_task >> clean_games_files_task
     format_boxscores_task >> clean_boxscores_files_task
-    # fetch_players_task
-    format_players_task >> clean_players_files_task 
+    format_players_task >> clean_players_files_task
 
     combine_datasources_task.set_upstream([clean_games_files_task, clean_boxscores_files_task, clean_players_files_task])
 
     combine_datasources_task >> clean_combine_files_task
-   
 
+    clean_combine_files_task >> index_data_to_elastic_task
