@@ -1,7 +1,7 @@
 import os
 import pyarrow.parquet as pq
 
-def merge_boxscores_files():
+def clean_boxscores_files():
     base_dir="/opt/spark/data_lake/formatted/nba_api/boxscores/"
     dates = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
 
@@ -31,4 +31,4 @@ def merge_boxscores_files():
 
 
 if __name__ == "__main__":
-    merge_boxscores_files()
+    clean_boxscores_files()

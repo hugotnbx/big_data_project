@@ -1,7 +1,7 @@
 import os
 import pyarrow.parquet as pq
 
-def merge_games_files():
+def clean_games_files():
     base_dir="/opt/spark/data_lake/formatted/nba_api/games/"
     dates = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
 
@@ -31,4 +31,4 @@ def merge_games_files():
 
 
 if __name__ == "__main__":
-    merge_games_files()
+    clean_games_files()

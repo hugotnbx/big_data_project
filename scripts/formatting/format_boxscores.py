@@ -28,7 +28,6 @@ def format_boxscores():
             col("GAME_ID").alias("game_id"),
             col("TEAM_ID").alias("team_id"),
             col("PLAYER_ID").alias("player_id"),
-            col("START_POSITION").alias("position"),
             col("MIN").alias("min"),
             col("REB").alias("reb"),
             col("AST").alias("ast"),

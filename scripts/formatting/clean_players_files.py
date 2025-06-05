@@ -1,7 +1,7 @@
 import os
 import pyarrow.parquet as pq
 
-def merge_players_files():
+def clean_players_files():
     base_dir = "/opt/spark/data_lake/formatted/nba_api/players/"
     
     parquet_files = [os.path.join(base_dir, f) for f in os.listdir(base_dir) if f.endswith(".parquet")]
@@ -27,4 +27,4 @@ def merge_players_files():
                 print(f"⚠️ Erreur en supprimant {file_path}: {e}")
 
 if __name__ == "__main__":
-    merge_players_files()
+    clean_players_files()

@@ -23,7 +23,7 @@ services:
       - ./data_lake:/opt/airflow/data_lake
       - ./scripts:/opt/airflow/scripts
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./airflow_config:/opt/airflow
+      - ./airflow_data:/opt/airflow
     ports:
       - "8080:8080"
     command: standalone
