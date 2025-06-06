@@ -40,14 +40,15 @@ def combine_datasources():
 
         cleaned_df = combined_df.filter(combined_df.player_name.isNotNull())
 
-        # Colonnes finales
         final_df = cleaned_df.select(
             col("b.game_id"),
             col("g.game_date"),
+            col("g.game_type"),
             col("g.matchup"),
             col("g.team_id"),
             col("g.team_abbreviation"),
             col("g.team_name"),
+            col("g.home_game"),
             col("g.team_pts"),
             col("g.win"),
             col("b.player_id"),
@@ -62,11 +63,10 @@ def combine_datasources():
             col("p.birthdate"),
             col("p.height"),
             col("p.weight"),
-            col("p.season_exp"),
             col("p.country"),
+            col("p.season_exp"),
         )
 
-        # Sauvegarde
         output_path = f"/opt/spark/data_lake/usage/nba_data/season_24_25/{date}/"
         final_df.write.mode("overwrite").parquet(output_path)
         print(f"✅ Saved combined data for {date} at {output_path}")

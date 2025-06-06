@@ -11,18 +11,14 @@ def fetch_players():
     raw_path = f"./data_lake/{layer}/{group}/{table_name}/"
     os.makedirs(raw_path, exist_ok=True)
 
-    # 🔎 Récupère la liste des joueurs actifs
     active_players = players.get_active_players()
     print(f"🔎 Found {len(active_players)} active players.")
 
-    # 📝 Liste pour stocker les infos
     all_players_info = []
 
-    # Paramètres pour le retry
     max_retries = 5
-    retry_delay = 3  # en secondes
+    retry_delay = 3 
 
-    # 📦 Pour chaque joueur, récupère les infos avec commonplayerinfo
     for idx, player in enumerate(active_players):
         player_id = player['id']
         player_name = player['full_name']
@@ -34,11 +30,10 @@ def fetch_players():
                 info = commonplayerinfo.CommonPlayerInfo(player_id=player_id)
                 player_info_df = info.common_player_info.get_data_frame()
 
-                # ➡️ Il y a toujours 1 ligne avec les infos du joueur
                 player_data = player_info_df.iloc[0].to_dict()
                 all_players_info.append(player_data)
                 print(f"✅ Retrieved info for {player_name} ({idx+1}/{len(active_players)})")
-                success = True  # On sort de la boucle de retry
+                success = True  
             except Exception as e:
                 attempt += 1
                 print(f"❌ Error for {player_name} ({player_id}) [Attempt {attempt}/{max_retries}]: {e}")
@@ -48,10 +43,8 @@ def fetch_players():
                 else:
                     print(f"🚫 Failed to retrieve info for {player_name} after {max_retries} attempts.")
 
-        # Petite pause pour éviter de saturer l'API
         time.sleep(0.5)
 
-    # 💾 Sauvegarde les infos en JSON
     output_file = os.path.join(raw_path, "players.json")
     with open(output_file, "w") as f:
         for player_data in all_players_info:

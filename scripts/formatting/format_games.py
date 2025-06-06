@@ -1,6 +1,6 @@
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_unixtime, when, date_format
+from pyspark.sql.functions import col, from_unixtime, when, date_format, to_date, instr
 
 def format_games():
     spark = SparkSession.builder.appName("NBA Games Formatting").getOrCreate()
@@ -36,10 +36,41 @@ def format_games():
                .withColumn("team_pts", col("team_pts").cast("int")) \
                .withColumn("game_date_ts", from_unixtime(col("game_date") / 1000).cast("timestamp")) \
                .withColumn("game_date", date_format(col("game_date_ts"), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")) \
+               .withColumn("game_date_only", to_date(col("game_date_ts"))) \
                .drop("game_date_ts")
 
         df = df.withColumn("win", when(col("win_raw") == "W", True).otherwise(False)) \
                .drop("win_raw")
+
+        df = df.withColumn(
+            "game_type",
+            when(
+                col("game_date_only") == "2024-12-17",
+                "NBA Cup"
+            ).when(
+                (col("game_date_only") >= "2025-02-14") & (col("game_date_only") <= "2025-02-16"),
+                "All Star Game"
+            ).when(
+                (col("game_date_only") >= "2025-04-15") & (col("game_date_only") <= "2025-04-18"),
+                "Play-In"
+            ).when(
+                (col("game_date_only") >= "2025-04-19") & (col("game_date_only") <= "2025-06-30"),
+                "Playoffs"
+            ).when(
+                (col("game_date_only") >= "2024-10-04") & (col("game_date_only") <= "2024-10-21"),
+                "Preseason"
+            ).when(
+                (col("game_date_only") >= "2024-10-22") & (col("game_date_only") <= "2025-04-13"),
+                "Regular Season"
+            ).otherwise(None)
+        )
+
+        df = df.withColumn(
+            "home_game",
+            when(instr(col("matchup"), "@") > 0, False).otherwise(True)
+        )
+
+        df = df.drop("game_date_only")
 
         output_dir = os.path.join(output_base, date_str)
         os.makedirs(output_dir, exist_ok=True)

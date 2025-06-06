@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 import os
+from pyspark.sql.functions import concat_ws
 
 def index_data_to_elastic():
     spark = SparkSession.builder \
@@ -16,13 +17,14 @@ def index_data_to_elastic():
         parquet_path = f"{base_path}/{date}/nba_data.parquet"
         print(f"➡️ Indexing data for date: {date}")
 
-        # ➡️ Lecture directe sans transformation JSON
         df_to_index = spark.read.parquet(parquet_path)
 
-        # ➡️ Écriture dans Elasticsearch (chaque colonne sera un champ séparé)
+        df_to_index = df_to_index.withColumn("doc_id", concat_ws("_", "game_id", "player_id"))
+
         df_to_index.write \
             .format("org.elasticsearch.spark.sql") \
             .option("es.resource", "nba_usage") \
+            .option("es.mapping.id", "doc_id") \
             .mode("append") \
             .save()
 
