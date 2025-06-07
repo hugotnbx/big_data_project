@@ -39,7 +39,7 @@ def format_games():
                .withColumn("game_date_only", to_date(col("game_date_ts"))) \
                .drop("game_date_ts")
 
-        df = df.withColumn("win", when(col("win_raw") == "W", True).otherwise(False)) \
+        df = df.withColumn("win", when(col("win_raw") == "W", 1).otherwise(0)) \
                .drop("win_raw")
 
         df = df.withColumn(

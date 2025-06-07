@@ -60,7 +60,7 @@ def combine_datasources():
             col("b.stl"),
             col("b.blk"),
             col("b.min"),
-            col("p.birthdate"),
+            col("p.age"),
             col("p.height"),
             col("p.weight"),
             col("p.country"),

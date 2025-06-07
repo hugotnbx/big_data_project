@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, regexp_replace, to_timestamp, to_date, concat_ws
+from pyspark.sql.functions import col, regexp_replace, to_timestamp, to_date, concat_ws, months_between, current_date, floor
 
 def format_players():
     spark = SparkSession.builder.appName("NBA Players Formatting").getOrCreate()
@@ -12,13 +12,17 @@ def format_players():
     df_clean = df.withColumn("birthdate_clean", regexp_replace(col("birthdate"), "T", " "))
     df_clean = df_clean.withColumn("birthdate_date", to_date(to_timestamp(col("birthdate_clean"), "yyyy-MM-dd HH:mm:ss")))
 
-    df_with_player_name = df_clean.withColumn("player_name", concat_ws(" ", col("first_name"), col("last_name")))
+    df_with_age = df_clean.withColumn(
+        "age",
+        floor(months_between(current_date(), col("birthdate_date")) / 12)
+    )
+
+    df_with_player_name = df_with_age.withColumn("player_name", concat_ws(" ", col("first_name"), col("last_name")))
     df_with_team_name = df_with_player_name.withColumn("team_name", concat_ws(" ", col("team_city"), col("team_name")))
 
     df_selected = df_with_team_name.select(
         col("person_id").cast("int").alias("player_id"),
         col("player_name"),
-        col("birthdate_date").alias("birthdate"),
         col("country"),
         col("height"),
         col("weight").cast("int"),
@@ -26,6 +30,7 @@ def format_players():
         col("position"),
         col("team_id").cast("int"),
         col("team_name"),
+        col("age").cast("int") 
     )
 
     df_selected.write.mode("overwrite").parquet(output_path)

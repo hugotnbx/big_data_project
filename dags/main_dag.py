@@ -20,7 +20,7 @@ with DAG(
     },
     description='Pipeline for the Big Data project',
     schedule_interval='@daily',
-    start_date=datetime(2025, 6, 5),
+    start_date=datetime(2025, 6, 7),
     catchup=False,
 ) as dag:
 
